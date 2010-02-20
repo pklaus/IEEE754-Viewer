@@ -116,7 +116,20 @@ class IEEE754Viewer(gtk.Window):
         vbox.pack_start(input_hbox, expand, fill, padding)
         vbox.pack_start(middle_box, expand, fill, padding)
         vbox.pack_start(representation_table, expand, fill, padding)
-        self.add(vbox)
+        
+        bin = gtk.Frame()
+        bin.set_border_width(3)
+        bin.set_shadow_type(gtk.SHADOW_NONE)
+        bin.add(vbox)
+        
+        frame = gtk.Frame()
+        frame.add(bin)
+        frame.set_label("Binary Floating Point Formats according to the IEEE Standard for Floating-Point Arithmetic")
+        frame.set_shadow_type(gtk.SHADOW_OUT)
+        frame.set_border_width(5)
+        
+        
+        self.add(frame)
         
         self.enter(initial_value)
         
