@@ -21,20 +21,21 @@
 
 import gtk
 import signal
-import math
+import sys
+import os
 
-PROGRAM_ICON = 'IEEE754-Viewer.png'
-DEVICE_CONTROLLER_UI = "IEEE754-Viewer.ui"
+PROGRAM_ICON = 'icon.png'
 
 def getAbsoluteFilepath(filename):
     fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
-    return fullpath + '/resources/' + filename
+    return fullpath + '/' + filename
 
 
 class IEEE754Viewer(gtk.Window):
     def __init__(self, app_controller, precision = 32, initial_value = 0.0):
         gtk.Window.__init__(self,gtk.WINDOW_TOPLEVEL)
         self.set_title("IEEE754 Viewer")
+        self.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
         #self.set_default_size(500, 200)
         self.connect('destroy', gtk.main_quit)
         self.app_controller = app_controller
