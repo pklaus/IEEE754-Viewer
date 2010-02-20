@@ -40,6 +40,8 @@ class IEEE754Viewer(gtk.Window):
         self.connect('destroy', gtk.main_quit)
         self.app_controller = app_controller
         
+        self.update_other_input_widgets = True
+        
         spacing, homogeneous, expand, fill, padding = 2, True, True, True, 5
         
         label1 = gtk.Label('Enter a Decimal Floating Point:')
@@ -64,11 +66,16 @@ class IEEE754Viewer(gtk.Window):
         mode_radio_box.pack_start(mode_radio_button[64], expand, fill, padding)
         
         self.representation_label = gtk.Label()
+        self.number_status_label = gtk.Label()
+        
+        status_labels_box = gtk.VBox(False, spacing)
+        status_labels_box.pack_start(self.representation_label, False, False, padding)
+        status_labels_box.pack_start(self.number_status_label, False, False, padding)
         
         middle_box = gtk.HBox(False, spacing)
         middle_box.pack_start(mode_radio_box, False, False, padding)
         #                                                expand, fill, padding
-        middle_box.pack_start(self.representation_label, True, True, padding)
+        middle_box.pack_start(status_labels_box, True, True, padding)
         
         self.precision = precision
         
@@ -94,6 +101,7 @@ class IEEE754Viewer(gtk.Window):
         for i in range(self.precision):
             self.bit.append(gtk.CheckButton())
             self.place(self.bit[i],representation_table,i,row)
+            self.bit[i].connect("toggled", self.bit_changed, i)
         row += 1
         label = gtk.Label('sign')
         representation_table.attach(label,0,1,row,row+1)
@@ -142,23 +150,74 @@ class IEEE754Viewer(gtk.Window):
         pos = self.precision -1 -bit + (1 if bit < self.precision-1 else 0) + (1 if bit < self.precision-self.exp_bits-1 else 0)
         table.attach(widget,pos,pos+1,row,row+1)
 
+    def bit_changed(self, widget, bit_nr):
+        if not self.update_other_input_widgets:
+            return
+        
+        sign = 1 if self.bit[self.precision-1].get_active() else 0
+        
+        biased_exponent = 0
+        for i in range(self.exp_bits):
+            biased_exponent += 2**i if self.bit[self.mantissa_bits+i].get_active() else 0
+        exponent = biased_exponent - self.bias
+        
+        mantissa = 1. # hidden bit
+        for i in range(self.mantissa_bits):
+            mantissa += 2**(-(i+1)) if self.bit[self.mantissa_bits-i-1].get_active() else 0.
+        
+        ###  special cases: ###
+        # zero
+        if biased_exponent == 0 and mantissa == 1.0:
+            number = 0.0
+        # 'inf'
+        elif biased_exponent == 2**self.exp_bits - 1 and mantissa == 1.0:
+            number = '-inf' if sign else '+inf'
+            number = float(number)
+        # 'nan'
+        elif biased_exponent == 2**self.exp_bits - 1 and mantissa > 1.0:
+            number = 'nan'
+            number = float(number)
+        # denormalized number:
+        elif biased_exponent == 0 and mantissa != 1.0:
+            mantissa -= 1
+            number = (-1)**sign * 2**exponent * mantissa
+        # zero:
+        elif biased_exponent == 0 and mantissa == 1.0:
+            mantissa = 0.0
+            number = (-1)**sign * 2**exponent * mantissa
+        else:
+            number = (-1)**sign * 2**exponent * mantissa
+        
+        # update the text entry (triggering an update):
+        self.input_entry.set_text(repr(number))
+    
+    
     def decimal_changed(self, widget):
+        if not self.update_other_input_widgets:
+            return
+        self.update_other_input_widgets = False
         user_input = self.input_entry.get_text()
         if user_input == '' or user_input == '-':
+            self.update_other_input_widgets = True
             return
         try:
             self.value = float(self.input_entry.get_text())
         except Exception, error:
             self.print_status("%s is not a valid floating point." % self.input_entry.get_text())
+            self.update_other_input_widgets = True
             return
-        self.print_status('actual representation: ' + repr(self.value))
+        self.print_status("Python's internal representation: " + repr(self.value))
         if self.value < 0:
             self.set_sign(-1)
         else:
             self.set_sign(1)
         self.abs_value = abs(self.value)
         
-        (self.normalized_mantissa, self.exponent) = self.__calculate_normalized_mantissa_and_exponent(self.abs_value)
+        try:
+            (self.normalized_mantissa, self.exponent) = self.__calculate_normalized_mantissa_and_exponent(self.abs_value)
+        except Exception, error:
+            self.update_other_input_widgets = True
+            raise error
         
         self.exp_entry.set_text("%d - %d = %d" % (self.exponent,self.bias,self.exponent-self.bias))
         
@@ -167,19 +226,53 @@ class IEEE754Viewer(gtk.Window):
             self.bit[self.precision - self.exp_bits - 1 + i].set_active(bit)
             i += 1
         
-        mantissa_decimal = 1. # hidden bit
-        for i in range(self.precision - self.exp_bits - 1):
+        if self.exponent == 0:
+            # denormalized number!
+            mantissa_decimal = 0.0
+        else:
+            mantissa_decimal = 1. # hidden bit
+        for i in range(self.mantissa_bits):
             self.bit[self.mantissa_bits-i-1].set_active(self.normalized_mantissa[i+1])
             mantissa_decimal += 2.**(-(i+1)) if self.normalized_mantissa[i+1] else 0.
-            #print "bit %d: %s" % (i, self.normalized_mantissa[i])
-        #print "bit %d: %s" % (23, self.normalized_mantissa[23])
         
-        self.mantissa_entry.set_text("Decimal value of the mantissa: %.16f" % mantissa_decimal)
-            
+        
+        if self.precision == 32:
+            mantissa_text = "%.7f" % mantissa_decimal
+        else:
+            mantissa_text = "%.16f" % mantissa_decimal
+        
+        if mantissa_decimal == 0.0:
+            self.mantissa_entry.set_text("Mantissa: decimal value w/o the missing bit: %s" % mantissa_text)
+            self.number_status_label.set_text("This is zero.")
+        elif mantissa_decimal < 1:
+            self.mantissa_entry.set_text("Mantissa: decimal value w/o the missing bit: %s" % mantissa_text)
+            self.number_status_label.set_text("This is a denormalized number.")
+        else:
+            self.mantissa_entry.set_text("Mantissa: decimal value with the hidden bit: %s" % mantissa_text)
+        
+        self.update_other_input_widgets = True
+
+    def is_nan(self, x):
+        # new in Python v2.6:
+        # return math.isnan(x)
+        return type(x) is float and x != x
+
+    def is_finite(self, x):
+        # guaraneed to work in Python v2.6:
+        return x not in (float('inf'), float('-inf'))
+        #inf = 2.**(2**self.exp_bits)
+        #return x not in (inf, -inf)
+
 
     def __calculate_normalized_mantissa_and_exponent(self, abs_value):
         if abs_value < 0:
             raise Exception('The parameter abs_value has to be a positive real.')
+        
+        if self.is_nan(abs_value):
+            return ([1 for i in range(self.mantissa_bits+1)], 2**self.exp_bits-1)
+        
+        if not self.is_finite(abs_value):
+            return ([0 for i in range(self.mantissa_bits+1)], 2**self.exp_bits-1)
         
         # calculate the mantissa
         self.trunk = int(self.abs_value)
@@ -237,7 +330,8 @@ class IEEE754Viewer(gtk.Window):
             self.sign_entry.set_text('')
 
     def print_status(self, status = 'internal representation'):
-        self.representation_label.set_text('\n%s\n' % status)
+        self.representation_label.set_text('%s' % status)
+        self.number_status_label.set_text("")
 
     def place_dummies(self, table, row):
         spacer_text = '    '
