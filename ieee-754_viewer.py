@@ -34,6 +34,7 @@ def getAbsoluteFilepath(filename):
 class IEEE754Viewer(gtk.Window):
     def __init__(self, app_controller, precision = 32, initial_value = 0.0):
         gtk.Window.__init__(self,gtk.WINDOW_TOPLEVEL)
+        self.set_title("IEEE754 Viewer")
         #self.set_default_size(500, 200)
         self.connect('destroy', gtk.main_quit)
         self.app_controller = app_controller
