@@ -4,27 +4,27 @@
 # author: Philipp Klaus, philipp.l.klaus AT web.de
 
 
-#   This file is part of ieee-754_viewer.
+#   This file is part of IEEE754-Viewer.
 #
-#   ieee-754_viewer is free software: you can redistribute it and/or modify
+#   IEEE754-Viewer is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
 #   the Free Software Foundation, either version 3 of the License, or
 #   (at your option) any later version.
 #
-#   ieee-754_viewer is distributed in the hope that it will be useful,
+#   IEEE754-Viewer is distributed in the hope that it will be useful,
 #   but WITHOUT ANY WARRANTY; without even the implied warranty of
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #   GNU General Public License for more details.
 #
 #   You should have received a copy of the GNU General Public License
-#   along with ieee-754_viewer.  If not, see <http://www.gnu.org/licenses/>.
+#   along with IEEE754-Viewer.  If not, see <http://www.gnu.org/licenses/>.
 
 import gtk
 import signal
 import math
 
-PROGRAM_ICON = 'ieee-754_viewer.png'
-DEVICE_CONTROLLER_UI = "ieee-754_viewer.ui"
+PROGRAM_ICON = 'IEEE754-Viewer.png'
+DEVICE_CONTROLLER_UI = "IEEE754-Viewer.ui"
 
 def getAbsoluteFilepath(filename):
     fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
