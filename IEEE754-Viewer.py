@@ -87,11 +87,8 @@ class IEEE754Viewer(gtk.Window):
         self.max_exponent = self.bias
         self.mantissa_bits = self.precision -1 - self.exp_bits
         
-        representation_table = gtk.Table(self.precision+2,5)
+        representation_table = gtk.Table(self.precision+2,4)
         row = 0
-        label = gtk.Label('bits...')
-        representation_table.attach(label,0,self.precision+2,row,row+1)
-        row += 1
         self.place_dummies(representation_table,row)
         for i in range(self.precision):
             label = gtk.Label(str(i))
@@ -119,11 +116,18 @@ class IEEE754Viewer(gtk.Window):
         self.mantissa_entry = gtk.Entry()
         representation_table.attach(self.mantissa_entry,3+self.exp_bits,3+self.precision,row,row+1)
         
+        
+        bit_representation = gtk.Frame()
+        bit_representation.add(representation_table)
+        bit_representation.set_label("bits...")
+        bit_representation.set_shadow_type(gtk.SHADOW_OUT)
+        bit_representation.set_border_width(2)
+        
         homogeneous = False
         vbox = gtk.VBox(homogeneous, spacing)
         vbox.pack_start(input_hbox, expand, fill, padding)
         vbox.pack_start(middle_box, expand, fill, padding)
-        vbox.pack_start(representation_table, expand, fill, padding)
+        vbox.pack_start(bit_representation, expand, fill, padding)
         
         bin = gtk.Frame()
         bin.set_border_width(3)
