@@ -1,0 +1,21 @@
+#!/usr/bin/env xdg-open
+
+# This file serves as an application launcher on many Linux Systems.
+# It may be put in ~/.gnome2/panel2.d/default/launchers or in /usr/share/applications.
+# Adjust Exec and Icon to your path!
+
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Name=IEEE 754 Viewer
+Name[en_US]=IEEE 754 Viewer
+Name[de]=IEEE 754 Betrachter
+Comment=Check out the internal representation of IEEE 754 compliant floating point numbers.
+Categories=GNOME;Application;Utility;
+Exec=/home/philipp/IEEE754-Viewer/IEEE754-Viewer.py
+Icon=/home/philipp/IEEE754-Viewer/icon.png
+Type=Application
+Terminal=false
+
+
+
