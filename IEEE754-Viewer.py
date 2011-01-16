@@ -23,6 +23,7 @@ import gtk
 import signal
 import sys
 import os
+import struct
 
 PROGRAM_ICON = 'icon.png'
 
@@ -46,7 +47,7 @@ class IEEE754Viewer(gtk.Window):
         
         label1 = gtk.Label('Enter a Decimal Floating Point:')
         self.input_entry = gtk.Entry()
-        self.input_entry.connect('changed', self.decimal_changed)
+        self.input_entry.connect('changed', self.input_changed)
         input_hbox = gtk.HBox(homogeneous, spacing)
         input_hbox.pack_start(label1, expand, fill, padding)
         input_hbox.pack_start(self.input_entry, expand, fill, padding)
@@ -123,11 +124,26 @@ class IEEE754Viewer(gtk.Window):
         bit_representation.set_shadow_type(gtk.SHADOW_OUT)
         bit_representation.set_border_width(2)
         
+        
+        label = gtk.Label('Hex code representation:')
+        self.hex_entry = gtk.Entry()
+        self.hex_entry.connect('changed', self.input_changed, 'hex')
+        hex_input_hbox = gtk.HBox(homogeneous, spacing)
+        hex_input_hbox.pack_start(label, expand, fill, padding)
+        hex_input_hbox.pack_start(self.hex_entry, expand, fill, padding)
+        
+        hex_representation = gtk.Frame()
+        hex_representation.add(hex_input_hbox)
+        hex_representation.set_label("hex...")
+        hex_representation.set_shadow_type(gtk.SHADOW_OUT)
+        hex_representation.set_border_width(2)
+        
         homogeneous = False
         vbox = gtk.VBox(homogeneous, spacing)
         vbox.pack_start(input_hbox, expand, fill, padding)
         vbox.pack_start(middle_box, expand, fill, padding)
         vbox.pack_start(bit_representation, expand, fill, padding)
+        vbox.pack_start(hex_representation, expand, fill, padding)
         
         bin = gtk.Frame()
         bin.set_border_width(3)
@@ -196,10 +212,28 @@ class IEEE754Viewer(gtk.Window):
         self.input_entry.set_text(repr(number))
     
     
-    def decimal_changed(self, widget):
+    def input_changed(self, widget, which = 'decimal'):
         if not self.update_other_input_widgets:
             return
         self.update_other_input_widgets = False
+            
+        if which == 'hex':
+            hex_str = self.hex_entry.get_text()
+            hex_str += '00 00 00 00' if self.precision == 32 else ''
+            hex_str_cleaned = hex_str.replace(' ','')
+            bytes = []
+            try:
+                for i in range(len(hex_str_cleaned)/2):
+                    bytes.append(int(hex_str_cleaned[2*i]+hex_str_cleaned[2*i+1], 16)) # both nibbles together
+                number = struct.unpack('>d', ''.join([chr(b) for b in bytes]))[0] # big-endian: >d, little+endian: <d
+                self.input_entry.set_text(repr(number))
+            except struct.error, error:
+                self.update_other_input_widgets = True
+                return
+            except Exception, error:
+                self.update_other_input_widgets = True
+                return
+        
         user_input = self.input_entry.get_text()
         if user_input == '' or user_input == '-':
             self.update_other_input_widgets = True
@@ -254,6 +288,12 @@ class IEEE754Viewer(gtk.Window):
         else:
             self.mantissa_entry.set_text("Mantissa: decimal value with the hidden bit: %s" % mantissa_text)
         
+        # update hex field
+        s = struct.pack('>d', self.value)
+        c = [ord(c) for c in s]
+        self.hex_entry.set_text(' '.join('%.2x' % ord(s[i]) for i in range(self.precision/8)))
+        
+        # reactivate hex changes:
         self.update_other_input_widgets = True
 
     def is_nan(self, x):
