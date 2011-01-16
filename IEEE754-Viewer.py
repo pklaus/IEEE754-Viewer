@@ -167,23 +167,32 @@ class IEEE754Viewer(gtk.Window):
         gtk.main_quit()
 
     def place(self, widget, table, bit, row):
-        pos = self.precision -1 -bit + (1 if bit < self.precision-1 else 0) + (1 if bit < self.precision-self.exp_bits-1 else 0)
+        pos = self.precision -1 -bit
+        if bit < self.precision-1:
+            pos += 1
+        if bit < self.precision-self.exp_bits-1:
+            pos += 1
         table.attach(widget,pos,pos+1,row,row+1)
 
     def bit_changed(self, widget, bit_nr):
         if not self.update_other_input_widgets:
             return
         
-        sign = 1 if self.bit[self.precision-1].get_active() else 0
+        if self.bit[self.precision-1].get_active():
+            sign = 1
+        else:
+            sign = 0
         
         biased_exponent = 0
         for i in range(self.exp_bits):
-            biased_exponent += 2**i if self.bit[self.mantissa_bits+i].get_active() else 0
+            if self.bit[self.mantissa_bits+i].get_active():
+                biased_exponent += 2**i
         exponent = biased_exponent - self.bias
         
         mantissa = 1. # hidden bit
         for i in range(self.mantissa_bits):
-            mantissa += 2**(-(i+1)) if self.bit[self.mantissa_bits-i-1].get_active() else 0.
+            if self.bit[self.mantissa_bits-i-1].get_active():
+                mantissa += 2**(-(i+1))
         
         ###  special cases: ###
         # zero
@@ -191,7 +200,10 @@ class IEEE754Viewer(gtk.Window):
             number = 0.0
         # 'inf'
         elif biased_exponent == 2**self.exp_bits - 1 and mantissa == 1.0:
-            number = '-inf' if sign else '+inf'
+            if sign:
+                number = '-inf'
+            else:
+                number = '+inf'
             number = float(number)
         # 'nan'
         elif biased_exponent == 2**self.exp_bits - 1 and mantissa > 1.0:
@@ -271,7 +283,8 @@ class IEEE754Viewer(gtk.Window):
             mantissa_decimal = 1. # hidden bit
         for i in range(self.mantissa_bits):
             self.bit[self.mantissa_bits-i-1].set_active(self.normalized_mantissa[i+1])
-            mantissa_decimal += 2.**(-(i+1)) if self.normalized_mantissa[i+1] else 0.
+            if self.normalized_mantissa[i+1]:
+                mantissa_decimal += 2.**(-(i+1))
         
         
         if self.precision == 32:
@@ -343,7 +356,10 @@ class IEEE754Viewer(gtk.Window):
         
         while len(left_bits) + len(right_bits) < self.mantissa_bits + 1: # precision - sign - exponent
             right_bits.append(self.fraction * 2 >= 1)
-            self.fraction = self.fraction * 2 if self.fraction*2<1 else self.fraction * 2-1.0
+            if self.fraction*2<1:
+                self.fraction = self.fraction * 2
+            else:
+                self.fraction = self.fraction * 2-1.0
         
         
         
