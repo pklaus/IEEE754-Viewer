@@ -40,46 +40,46 @@ class IEEE754Viewer(gtk.Window):
         #self.set_default_size(500, 200)
         self.connect('destroy', gtk.main_quit)
         self.app_controller = app_controller
-        
+
         self.update_other_input_widgets = True
-        
+
         spacing, homogeneous, expand, fill, padding = 2, True, True, True, 5
-        
+
         label1 = gtk.Label('Enter a Decimal Floating Point:')
         self.input_entry = gtk.Entry()
         self.input_entry.connect('changed', self.input_changed)
         input_hbox = gtk.HBox(homogeneous, spacing)
         input_hbox.pack_start(label1, expand, fill, padding)
         input_hbox.pack_start(self.input_entry, expand, fill, padding)
-        
-        
+
+
         mode_radio_button = dict()
         mode_radio_button[32] = gtk.RadioButton(None, "32 bit precision")
         mode_radio_button[64] = gtk.RadioButton(mode_radio_button[32], "64 bit precision")
 
         mode_radio_button[precision].set_active(True)
-        
+
         mode_radio_button[32].connect("toggled", self.mode_change, 32)
         mode_radio_button[64].connect("toggled", self.mode_change, 64)
 
         mode_radio_box = gtk.VBox(homogeneous, spacing)
         mode_radio_box.pack_start(mode_radio_button[32], expand, fill, padding)
         mode_radio_box.pack_start(mode_radio_button[64], expand, fill, padding)
-        
+
         self.representation_label = gtk.Label()
         self.number_status_label = gtk.Label()
-        
+
         status_labels_box = gtk.VBox(False, spacing)
         status_labels_box.pack_start(self.representation_label, False, False, padding)
         status_labels_box.pack_start(self.number_status_label, False, False, padding)
-        
+
         middle_box = gtk.HBox(False, spacing)
         middle_box.pack_start(mode_radio_box, False, False, padding)
         #                                                expand, fill, padding
         middle_box.pack_start(status_labels_box, True, True, padding)
-        
+
         self.precision = precision
-        
+
         if self.precision == 32:
             self.exp_bits = 8
         elif self.precision == 64:
@@ -87,7 +87,7 @@ class IEEE754Viewer(gtk.Window):
         self.bias = (2**(self.exp_bits-1))-1
         self.max_exponent = self.bias
         self.mantissa_bits = self.precision -1 - self.exp_bits
-        
+
         representation_table = gtk.Table(self.precision+2,4)
         row = 0
         self.place_dummies(representation_table,row)
@@ -116,51 +116,51 @@ class IEEE754Viewer(gtk.Window):
         representation_table.attach(self.exp_entry,2,2+self.exp_bits,row,row+1)
         self.mantissa_entry = gtk.Entry()
         representation_table.attach(self.mantissa_entry,3+self.exp_bits,3+self.precision,row,row+1)
-        
-        
+
+
         bit_representation = gtk.Frame()
         bit_representation.add(representation_table)
         bit_representation.set_label("bits...")
         bit_representation.set_shadow_type(gtk.SHADOW_OUT)
         bit_representation.set_border_width(2)
-        
-        
+
+
         label = gtk.Label('Hex code representation:')
         self.hex_entry = gtk.Entry()
         self.hex_entry.connect('changed', self.input_changed, 'hex')
         hex_input_hbox = gtk.HBox(homogeneous, spacing)
         hex_input_hbox.pack_start(label, expand, fill, padding)
         hex_input_hbox.pack_start(self.hex_entry, expand, fill, padding)
-        
+
         hex_representation = gtk.Frame()
         hex_representation.add(hex_input_hbox)
         hex_representation.set_label("hex...")
         hex_representation.set_shadow_type(gtk.SHADOW_OUT)
         hex_representation.set_border_width(2)
-        
+
         homogeneous = False
         vbox = gtk.VBox(homogeneous, spacing)
         vbox.pack_start(input_hbox, expand, fill, padding)
         vbox.pack_start(middle_box, expand, fill, padding)
         vbox.pack_start(bit_representation, expand, fill, padding)
         vbox.pack_start(hex_representation, expand, fill, padding)
-        
+
         bin = gtk.Frame()
         bin.set_border_width(3)
         bin.set_shadow_type(gtk.SHADOW_NONE)
         bin.add(vbox)
-        
+
         frame = gtk.Frame()
         frame.add(bin)
         frame.set_label("Binary Floating Point Formats according to the IEEE Standard for Floating-Point Arithmetic")
         frame.set_shadow_type(gtk.SHADOW_OUT)
         frame.set_border_width(5)
-        
-        
+
+
         self.add(frame)
-        
+
         self.enter(initial_value)
-        
+
 
     def mode_change(self, widget, change_to):
         self.app_controller.set_start_again(change_to, self.value, self.get_position())
@@ -177,23 +177,23 @@ class IEEE754Viewer(gtk.Window):
     def bit_changed(self, widget, bit_nr):
         if not self.update_other_input_widgets:
             return
-        
+
         if self.bit[self.precision-1].get_active():
             sign = 1
         else:
             sign = 0
-        
+
         biased_exponent = 0
         for i in range(self.exp_bits):
             if self.bit[self.mantissa_bits+i].get_active():
                 biased_exponent += 2**i
         exponent = biased_exponent - self.bias
-        
+
         mantissa = 1. # hidden bit
         for i in range(self.mantissa_bits):
             if self.bit[self.mantissa_bits-i-1].get_active():
                 mantissa += 2**(-(i+1))
-        
+
         ###  special cases: ###
         # zero
         if biased_exponent == 0 and mantissa == 1.0:
@@ -219,16 +219,16 @@ class IEEE754Viewer(gtk.Window):
             number = (-1)**sign * 2**exponent * mantissa
         else:
             number = (-1)**sign * 2**exponent * mantissa
-        
+
         # update the text entry (triggering an update):
         self.input_entry.set_text(repr(number))
-    
-    
+
+
     def input_changed(self, widget, which = 'decimal'):
         if not self.update_other_input_widgets:
             return
         self.update_other_input_widgets = False
-            
+
         if which == 'hex':
             hex_str = self.hex_entry.get_text()
             hex_str += '00 00 00 00' if self.precision == 32 else ''
@@ -245,7 +245,7 @@ class IEEE754Viewer(gtk.Window):
             except Exception, error:
                 self.update_other_input_widgets = True
                 return
-        
+
         user_input = self.input_entry.get_text()
         if user_input == '' or user_input == '-':
             self.update_other_input_widgets = True
@@ -262,20 +262,20 @@ class IEEE754Viewer(gtk.Window):
         else:
             self.set_sign(1)
         self.abs_value = abs(self.value)
-        
+
         try:
             (self.normalized_mantissa, self.exponent) = self.__calculate_normalized_mantissa_and_exponent(self.abs_value)
         except Exception, error:
             self.update_other_input_widgets = True
             raise error
-        
+
         self.exp_entry.set_text("%d - %d = %d" % (self.exponent,self.bias,self.exponent-self.bias))
-        
+
         i = 0
         for bit in self.list_from_exponent(self.exponent):
             self.bit[self.precision - self.exp_bits - 1 + i].set_active(bit)
             i += 1
-        
+
         if self.exponent == 0:
             # denormalized number!
             mantissa_decimal = 0.0
@@ -285,13 +285,13 @@ class IEEE754Viewer(gtk.Window):
             self.bit[self.mantissa_bits-i-1].set_active(self.normalized_mantissa[i+1])
             if self.normalized_mantissa[i+1]:
                 mantissa_decimal += 2.**(-(i+1))
-        
-        
+
+
         if self.precision == 32:
             mantissa_text = "%.7f" % mantissa_decimal
         else:
             mantissa_text = "%.16f" % mantissa_decimal
-        
+
         if mantissa_decimal == 0.0:
             self.mantissa_entry.set_text("Mantissa: decimal value w/o the missing bit: %s" % mantissa_text)
             self.number_status_label.set_text("This is zero.")
@@ -300,12 +300,12 @@ class IEEE754Viewer(gtk.Window):
             self.number_status_label.set_text("This is a denormalized number.")
         else:
             self.mantissa_entry.set_text("Mantissa: decimal value with the hidden bit: %s" % mantissa_text)
-        
+
         # update hex field
         s = struct.pack('>d', self.value)
         c = [ord(c) for c in s]
         self.hex_entry.set_text(' '.join('%.2x' % ord(s[i]) for i in range(self.precision/8)))
-        
+
         # reactivate hex changes:
         self.update_other_input_widgets = True
 
@@ -324,13 +324,13 @@ class IEEE754Viewer(gtk.Window):
     def __calculate_normalized_mantissa_and_exponent(self, abs_value):
         if abs_value < 0:
             raise Exception('The parameter abs_value has to be a positive real.')
-        
+
         if self.is_nan(abs_value):
             return ([1 for i in range(self.mantissa_bits+1)], 2**self.exp_bits-1)
-        
+
         if not self.is_finite(abs_value):
             return ([0 for i in range(self.mantissa_bits+1)], 2**self.exp_bits-1)
-        
+
         # calculate the mantissa
         self.trunk = int(self.abs_value)
         left_bits = []
@@ -341,7 +341,7 @@ class IEEE754Viewer(gtk.Window):
             exponent_decimal += 1
             left_bits.append(self.trunk%2 == 1)
             self.trunk /= 2
-        
+
         right_bits = []
         self.fraction = self.abs_value - int(self.abs_value)
 
@@ -353,21 +353,21 @@ class IEEE754Viewer(gtk.Window):
                 self.fraction *= 2
                 if exponent_decimal == -self.bias:
                     break
-        
+
         while len(left_bits) + len(right_bits) < self.mantissa_bits + 1: # precision - sign - exponent
             right_bits.append(self.fraction * 2 >= 1)
             if self.fraction*2<1:
                 self.fraction = self.fraction * 2
             else:
                 self.fraction = self.fraction * 2-1.0
-        
-        
-        
+
+
+
         # normalize the mantissa:
         left_bits.reverse()
         normalized_mantissa = left_bits[0:self.mantissa_bits+1]
         normalized_mantissa.extend(right_bits)
-        
+
         exponent_decimal += self.bias
         return (normalized_mantissa, exponent_decimal)
 
@@ -417,7 +417,7 @@ class Application_Handler(object):
             self.start_again = False
             gtk.main()
             ieeeviewer.hide()
-    
+
     def set_start_again(self, mode, value, old_window_position):
         self.start_again = True
         self.mode = mode
@@ -431,6 +431,6 @@ def main():
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL) # ^C exits the application
-    
+
     main()
 
